@@ -3,9 +3,9 @@ local function load(url)
 end
 
 load("https://raw.githubusercontent.com/tnrgb/VelaLoader/refs/heads/main/ui.lua")
-task.wait(45)
+task.wait(20)
 
 load("https://raw.githubusercontent.com/tnrgb/VelaLoader/refs/heads/main/autojoin")
-task.wait(20)
+task.wait(10)
 
 load("https://raw.githubusercontent.com/tnrgb/VelaLoader/refs/heads/main/main.lua")
