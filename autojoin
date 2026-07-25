@@ -1,0 +1,121 @@
+-- ==
+local CONFIG = {
+    MODE = "REJOIN", -- "REJOIN"
+    
+    MSG_LOAD_TITLE = "SCRIPT BY ZERO x TAIIKU",
+    MSG_LOAD_TEXT  = "TikTok : @TAIIKU037",
+    
+    MSG_JOIN_TITLE = "KAITUN EVADE SUMMER EVENT!",
+    MSG_JOIN_TEXT  = "zeroyeuem",
+    
+    MSG_HOP_TITLE  = "HOP SEVER",
+    MSG_HOP_TEXT   = "HOP SEVER IN 1S",
+    
+    NOTIFY_DURATION = 4
+}
+-- ==
+
+local StarterGui = game:GetService("StarterGui")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local function showNotification(title, text)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = title,
+            Text = text,
+            Duration = CONFIG.NOTIFY_DURATION,
+            Icon = "rbxassetid://6031071057"
+        })
+    end)
+end
+
+local function handleServerChange()
+    showNotification(CONFIG.MSG_HOP_TITLE, CONFIG.MSG_HOP_TEXT)
+    task.wait(1)
+    
+    local placeId = game.PlaceId
+    local jobId = game.JobId
+
+    if CONFIG.MODE == "REJOIN" then
+        if #jobId > 0 then
+            TeleportService:TeleportToPlaceInstance(placeId, jobId, LocalPlayer)
+        else
+            TeleportService:Teleport(placeId, LocalPlayer)
+        end
+    else
+        pcall(function()
+            local serversApi = "https://games.roblox.com/v1/games/" .. tostring(placeId) .. "/servers/0?sortOrder=Asc&limit=100"
+            local rawData = game:HttpGet(serversApi)
+            local body = HttpService:JSONDecode(rawData)
+            
+            if body and body.data then
+                for _, server in pairs(body.data) do
+                    if server.playing < server.maxPlayers and server.id ~= jobId then
+                        TeleportService:TeleportToPlaceInstance(placeId, server.id, LocalPlayer)
+                        return
+                    end
+                end
+            end
+            TeleportService:Teleport(placeId, LocalPlayer)
+        end)
+    end
+end
+
+--
+local function doClick(joinBtn)
+    if firesignal then
+        pcall(function() firesignal(joinBtn.MouseButton1Down) end)
+        pcall(function() firesignal(joinBtn.MouseButton1Click) end)
+        pcall(function() firesignal(joinBtn.MouseButton1Up) end)
+        pcall(function() firesignal(joinBtn.Activated) end)
+    end
+
+    if getconnections then
+        for _, conn in pairs(getconnections(joinBtn.MouseButton1Click)) do pcall(function() conn:Fire() end) end
+        for _, conn in pairs(getconnections(joinBtn.Activated)) do pcall(function() conn:Fire() end) end
+        for _, conn in pairs(getconnections(joinBtn.MouseButton1Down)) do pcall(function() conn:Fire() end) end
+    end
+end
+
+-- TIẾN TRÌNH CHÍNH
+task.spawn(function()
+    if not game:IsLoaded() then game.Loaded:Wait() end
+    
+    showNotification(CONFIG.MSG_LOAD_TITLE, CONFIG.MSG_LOAD_TEXT)
+    print("Bắt đầu Auto Join...")
+
+    local playerGui = LocalPlayer:WaitForChild("PlayerGui", 10)
+    if not playerGui then return end
+    
+    -- Lấy nút bấm
+    local menu = playerGui:WaitForChild("Menu", 10)
+    local joinBtn = menu 
+        and menu.Views.Default.MainMenu.Center.Buttons.Frame:FindFirstChild("B")
+        and menu.Views.Default.MainMenu.Center.Buttons.Frame.B:FindFirstChild("ImageButton")
+
+    if not joinBtn then
+        print(".")
+        return
+    end
+
+    -- 0.8s
+    showNotification(CONFIG.MSG_JOIN_TITLE, CONFIG.MSG_JOIN_TEXT)
+    for i = 1, 4 do
+        print("KAITUN " .. i .. "...")
+        doClick(joinBtn)
+        task.wait(0.8)
+        
+        -- Nếu GUI Menu đã bị tắt/xóa -> Vào game thành công!
+        if not menu.Parent or not menu.Enabled then
+            print(">>>KAITUN EVADE SUMMER EVENT!<<<")
+            return
+        end
+    end
+
+    -- Nếu sau 4 lần bấm mà Menu vẫn còn nguyên -> Bị khóa do HẾT MẠNG -> Rejoin!
+    print("HOP SEVER IN 1S")
+    handleServerChange()
+end)
