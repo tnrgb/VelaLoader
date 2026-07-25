@@ -19,43 +19,28 @@ DimBackground.ZIndex = 1
 DimBackground.Parent = ScreenGui
 
 --------------------------------------------------------------------------------
--- TEXT INTRO NEON (Chữ đen + Ánh sáng Neon)
+-- TEXT INTRO (Chữ Trắng - Viền Đen - Size 50)
 --------------------------------------------------------------------------------
-local NEON_COLOR = Color3.fromRGB(0, 255, 240) -- Màu Neon (Xanh Cyan)
-
 local IntroText = Instance.new("TextLabel")
-IntroText.Size = UDim2.new(0, 500, 0, 70)
-IntroText.Position = UDim2.new(0.5, -250, 0.5, -35)
+IntroText.Size = UDim2.new(0, 700, 0, 100) -- Khung to để chứa chữ size 50
+IntroText.Position = UDim2.new(0.5, -350, 0.5, -50) -- Căn giữa màn hình chuẩn
 IntroText.BackgroundTransparency = 1
 IntroText.Text = "ZERO YEU EM VAI LOOL"
-IntroText.TextColor3 = Color3.fromRGB(0, 0, 0) -- Chữ chính màu đen
+IntroText.TextColor3 = Color3.fromRGB(255, 255, 255) -- Chữ màu Trắng
 IntroText.TextTransparency = 1
 IntroText.Font = Enum.Font.FredokaOne
-IntroText.TextSize = 30
+IntroText.TextSize = 50 -- Kích thước chữ 50
 IntroText.TextScaled = false
 IntroText.ZIndex = 3
 IntroText.Parent = ScreenGui
 
--- Viền Neon phát sáng
-local NeonStroke = Instance.new("UIStroke")
-NeonStroke.Thickness = 3
-NeonStroke.Color = NEON_COLOR
-NeonStroke.Transparency = 1
-NeonStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
-NeonStroke.Parent = IntroText
-
--- Bóng Neon tỏa sáng phía sau
-local NeonGlow = Instance.new("TextLabel")
-NeonGlow.Size = UDim2.new(1, 0, 1, 0)
-NeonGlow.Position = UDim2.new(0, 0, 0, 0)
-NeonGlow.BackgroundTransparency = 1
-NeonGlow.Text = IntroText.Text
-NeonGlow.TextColor3 = NEON_COLOR
-NeonGlow.TextTransparency = 1
-NeonGlow.Font = IntroText.Font
-NeonGlow.TextSize = IntroText.TextSize
-NeonGlow.ZIndex = 2
-NeonGlow.Parent = IntroText
+-- Viền Đen sắc nét (UIStroke)
+local TextStroke = Instance.new("UIStroke")
+TextStroke.Thickness = 3.5 -- Độ dày viền đen
+TextStroke.Color = Color3.fromRGB(0, 0, 0) -- Viền màu Đen
+TextStroke.Transparency = 1
+TextStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+TextStroke.Parent = IntroText
 
 --------------------------------------------------------------------------------
 -- BANNER CỐ ĐỊNH
@@ -115,30 +100,28 @@ Line3.Parent = Banner
 -- CHUỖI ANIMATION
 --------------------------------------------------------------------------------
 task.spawn(function()
-    -- 1) Text Neon: Mờ -> Hiện rõ toàn bộ hiệu ứng
-    TweenService:Create(IntroText, TweenInfo.new(1), {TextTransparency = 0}):Play()
-    TweenService:Create(NeonStroke, TweenInfo.new(1), {Transparency = 0}):Play()
-    local textFadeIn = TweenService:Create(NeonGlow, TweenInfo.new(1), {TextTransparency = 0.3})
+    -- 1) Hiện chữ và viền đồng thời
+    TweenService:Create(TextStroke, TweenInfo.new(1), {Transparency = 0}):Play()
+    local textFadeIn = TweenService:Create(IntroText, TweenInfo.new(1), {TextTransparency = 0})
     textFadeIn:Play()
     textFadeIn.Completed:Wait()
 
-    task.wait(0.5) -- Giữ chữ hiển thị
+    task.wait(0.8) -- Giữ chữ hiển thị rõ trên màn hình
 
-    -- 2) Text Neon: Rõ -> Mờ hẳn (biến mất)
-    TweenService:Create(IntroText, TweenInfo.new(1), {TextTransparency = 1}):Play()
-    TweenService:Create(NeonStroke, TweenInfo.new(1), {Transparency = 1}):Play()
-    local textFadeOut = TweenService:Create(NeonGlow, TweenInfo.new(1), {TextTransparency = 1})
+    -- 2) Ẩn chữ và viền
+    TweenService:Create(TextStroke, TweenInfo.new(1), {Transparency = 1}):Play()
+    local textFadeOut = TweenService:Create(IntroText, TweenInfo.new(1), {TextTransparency = 1})
     textFadeOut:Play()
     textFadeOut.Completed:Wait()
     
-    IntroText:Destroy() -- Xóa gọn UI Intro sau khi ẩn xong
+    IntroText:Destroy() -- Dọn dẹp Intro
 
-    -- 3) Banner hiện ra
+    -- 3) Hiện Banner cố định ở góc trên
     TweenService:Create(Banner, TweenInfo.new(0.6), {BackgroundTransparency = 0.35}):Play()
     TweenService:Create(BannerStroke, TweenInfo.new(0.6), {Transparency = 0.2}):Play()
     task.wait(0.4)
 
-    -- 4) Các dòng chữ trong Banner hiện lần lượt
+    -- 4) Hiện các dòng chữ trong Banner
     TweenService:Create(Line1, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
     task.wait(0.10)
     TweenService:Create(Line2, TweenInfo.new(0.4), {TextTransparency = 0.25}):Play()
