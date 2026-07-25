@@ -90,7 +90,7 @@ task.spawn(function()
     textFadeIn:Play()
     textFadeIn.Completed:Wait()
 
-    task.wait(1) -- giữ chữ hiển thị một lúc trước khi mờ dần (chỉnh số giây tùy ý)
+    task.wait(0.5) -- giữ chữ hiển thị một lúc trước khi mờ dần (chỉnh số giây tùy ý)
 
     -- 2) Text: rõ -> mờ (biến mất)
     local textFadeOut = TweenService:Create(IntroText, TweenInfo.new(1), {TextTransparency = 1})
@@ -101,12 +101,12 @@ task.spawn(function()
     -- 3) Banner hiện ra
     TweenService:Create(Banner, TweenInfo.new(0.6), {BackgroundTransparency = 0.35}):Play()
     TweenService:Create(BannerStroke, TweenInfo.new(0.6), {Transparency = 0.2}):Play()
-    task.wait(0.6)
+    task.wait(0.5)
 
     -- 4) Chữ hiện lần lượt
     TweenService:Create(Line1, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
-    task.wait(0.15)
+    task.wait(0.10)
     TweenService:Create(Line2, TweenInfo.new(0.4), {TextTransparency = 0.25}):Play()
-    task.wait(0.15)
+    task.wait(0.10)
     TweenService:Create(Line3, TweenInfo.new(0.4), {TextTransparency = 0.25}):Play()
 end)
