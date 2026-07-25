@@ -1,6 +1,6 @@
--- ==
+-- == CONFIG ==
 local CONFIG = {
-    MODE = "REJOIN", -- "REJOIN"
+    MODE = "REJOIN", -- "REJOIN" hoặc "SERVERHOP"
     
     MSG_LOAD_TITLE = "SCRIPT BY ZERO x TAIIKU",
     MSG_LOAD_TEXT  = "TikTok : @TAIIKU037",
@@ -8,8 +8,8 @@ local CONFIG = {
     MSG_JOIN_TITLE = "KAITUN EVADE SUMMER EVENT!",
     MSG_JOIN_TEXT  = "zeroyeuem",
     
-    MSG_HOP_TITLE  = "HOP SEVER",
-    MSG_HOP_TEXT   = "HOP SEVER IN 1S",
+    MSG_HOP_TITLE  = "HOP SERVER",
+    MSG_HOP_TEXT   = "Chuyển Server trong 1s...",
     
     NOTIFY_DURATION = 4
 }
@@ -64,7 +64,6 @@ local function handleServerChange()
     end
 end
 
---
 local function doClick(joinBtn)
     if firesignal then
         pcall(function() firesignal(joinBtn.MouseButton1Down) end)
@@ -74,10 +73,27 @@ local function doClick(joinBtn)
     end
 
     if getconnections then
-        for _, conn in pairs(getconnections(joinBtn.MouseButton1Click)) do pcall(function() conn:Fire() end) end
-        for _, conn in pairs(getconnections(joinBtn.Activated)) do pcall(function() conn:Fire() end) end
-        for _, conn in pairs(getconnections(joinBtn.MouseButton1Down)) do pcall(function() conn:Fire() end) end
+        pcall(function()
+            for _, conn in pairs(getconnections(joinBtn.MouseButton1Click)) do pcall(function() conn:Fire() end) end
+            for _, conn in pairs(getconnections(joinBtn.Activated)) do pcall(function() conn:Fire() end) end
+            for _, conn in pairs(getconnections(joinBtn.MouseButton1Down)) do pcall(function() conn:Fire() end) end
+        end)
     end
+end
+
+-- Tìm nút Join an toàn (Quét sâu)
+local function getJoinButton(playerGui)
+    local menu = playerGui:FindFirstChild("Menu")
+    if not menu then return nil end
+    
+    local success, btn = pcall(function()
+        return menu.Views.Default.MainMenu.Center.Buttons.Frame.B.ImageButton
+    end)
+    
+    if success and btn then
+        return btn, menu
+    end
+    return nil, menu
 end
 
 -- TIẾN TRÌNH CHÍNH
@@ -87,35 +103,63 @@ task.spawn(function()
     showNotification(CONFIG.MSG_LOAD_TITLE, CONFIG.MSG_LOAD_TEXT)
     print("Bắt đầu Auto Join...")
 
-    local playerGui = LocalPlayer:WaitForChild("PlayerGui", 10)
-    if not playerGui then return end
+    local playerGui = LocalPlayer:WaitForChild("PlayerGui", 15)
+    if not playerGui then
+        handleServerChange()
+        return
+    end
     
-    -- Lấy nút bấm
-    local menu = playerGui:WaitForChild("Menu", 10)
-    local joinBtn = menu 
-        and menu.Views.Default.MainMenu.Center.Buttons.Frame:FindFirstChild("B")
-        and menu.Views.Default.MainMenu.Center.Buttons.Frame.B:FindFirstChild("ImageButton")
+    local joinBtn = nil
+    local menu = nil
+    local retries = 0
 
+    -- Thử quét tìm nút Join trong 15 giây
+    repeat
+        joinBtn, menu = getJoinButton(playerGui)
+        if not joinBtn then
+            task.wait(1)
+            retries = retries + 1
+        end
+    until joinBtn or retries >= 15
+
+    -- Nếu không thấy nút Join (Lỗi GUI hoặc kẹt Menu) -> Rejoin ngay
     if not joinBtn then
-        print(".")
+        print("[AutoJoin] Không tìm thấy nút Join -> Đang Rejoin...")
+        handleServerChange()
         return
     end
 
-    -- 0.8s
+    -- Thực hiện bấm nút Join
     showNotification(CONFIG.MSG_JOIN_TITLE, CONFIG.MSG_JOIN_TEXT)
-    for i = 1, 4 do
-        print("KAITUN " .. i .. "...")
+    
+    local joinedSuccess = false
+    for i = 1, 6 do
+        print("Đang bấm Join lần " .. i .. "...")
         doClick(joinBtn)
-        task.wait(0.8)
+        task.wait(1)
         
-        -- Nếu GUI Menu đã bị tắt/xóa -> Vào game thành công!
-        if not menu.Parent or not menu.Enabled then
-            print(">>>KAITUN EVADE SUMMER EVENT!<<<")
-            return
+        -- Kiểm tra xem đã vào game thành công chưa (Menu ẩn hoặc bị xóa)
+        if menu and (not menu.Parent or not menu.Enabled or not menu:IsDescendantOf(playerGui)) then
+            joinedSuccess = true
+            print(">>> VÀO GAME THÀNH CÔNG! <<<")
+            break
         end
     end
 
-    -- Nếu sau 4 lần bấm mà Menu vẫn còn nguyên -> Bị khóa do HẾT MẠNG -> Rejoin!
-    print("HOP SEVER IN 1S")
-    handleServerChange()
+    -- Nếu đã vào game: Bảo vệ nhân vật không bị chết
+    if joinedSuccess then
+        task.spawn(function()
+            local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            local hrp = char:WaitForChild("HumanoidRootPart", 10)
+            if hrp then
+                -- Đưa nhân vật lên cao ngay lập tức để tránh bị Nextbot cắn chết
+                hrp.CFrame = hrp.CFrame + Vector3.new(0, 200, 0)
+                hrp.Anchored = true
+            end
+        end)
+    else
+        -- Nếu bấm 6 lần vẫn ở Menu -> Bị treo/kẹt mạng -> Rejoin ngay
+        print("[AutoJoin] Kẹt ở Menu -> Đang tiến hành Rejoin/Hop Server...")
+        handleServerChange()
+    end
 end)
