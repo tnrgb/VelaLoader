@@ -1,17 +1,15 @@
 -- == CONFIG ==
 local CONFIG = {
     MODE = "REJOIN", -- "REJOIN" hoặc "SERVERHOP"
+    CHECK_INTERVAL = 0.5, -- Tần suất kiểm tra UI (0.5s/lần)
     
     MSG_LOAD_TITLE = "SCRIPT BY ZERO x TAIIKU",
     MSG_LOAD_TEXT  = "TikTok : @TAIIKU037",
     
-    MSG_JOIN_TITLE = "KAITUN EVADE SUMMER EVENT!",
-    MSG_JOIN_TEXT  = "zeroyeuem",
-    
     MSG_HOP_TITLE  = "HOP SERVER",
-    MSG_HOP_TEXT   = "Chuyển Server trong 1s...",
+    MSG_HOP_TEXT   = "Phát hiện kẹt/chết -> Đang đổi Server...",
     
-    NOTIFY_DURATION = 4
+    NOTIFY_DURATION = 3
 }
 -- ==
 
@@ -81,85 +79,83 @@ local function doClick(joinBtn)
     end
 end
 
--- Tìm nút Join an toàn (Quét sâu)
-local function getJoinButton(playerGui)
-    local menu = playerGui:FindFirstChild("Menu")
-    if not menu then return nil end
-    
-    local success, btn = pcall(function()
-        return menu.Views.Default.MainMenu.Center.Buttons.Frame.B.ImageButton
-    end)
-    
-    if success and btn then
-        return btn, menu
-    end
-    return nil, menu
-end
-
--- TIẾN TRÌNH CHÍNH
+-- VÒNG LẶP GIÁM SÁT LIÊN TỤC (THEO DÕI NÚT JOIN & MÀN HÌNH ĐỎ)
 task.spawn(function()
     if not game:IsLoaded() then game.Loaded:Wait() end
-    
     showNotification(CONFIG.MSG_LOAD_TITLE, CONFIG.MSG_LOAD_TEXT)
-    print("Bắt đầu Auto Join...")
 
-    local playerGui = LocalPlayer:WaitForChild("PlayerGui", 15)
-    if not playerGui then
-        handleServerChange()
-        return
-    end
-    
-    local joinBtn = nil
-    local menu = nil
-    local retries = 0
+    local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+    local downedTimer = 0
+    local menuStuckTimer = 0
 
-    -- Thử quét tìm nút Join trong 15 giây
-    repeat
-        joinBtn, menu = getJoinButton(playerGui)
-        if not joinBtn then
-            task.wait(1)
-            retries = retries + 1
-        end
-    until joinBtn or retries >= 15
+    while true do
+        task.wait(CONFIG.CHECK_INTERVAL)
 
-    -- Nếu không thấy nút Join (Lỗi GUI hoặc kẹt Menu) -> Rejoin ngay
-    if not joinBtn then
-        print("[AutoJoin] Không tìm thấy nút Join -> Đang Rejoin...")
-        handleServerChange()
-        return
-    end
+        ------------------------------------------------------------------------
+        -- 1. GIÁM SÁT TÌNH TRẠNG BỊ GỤC (MÀN HÌNH ĐỎ / DOWNED)
+        ------------------------------------------------------------------------
+        local char = LocalPlayer.Character
+        local isDowned = char and char:GetAttribute("Downed")
 
-    -- Thực hiện bấm nút Join
-    showNotification(CONFIG.MSG_JOIN_TITLE, CONFIG.MSG_JOIN_TEXT)
-    
-    local joinedSuccess = false
-    for i = 1, 6 do
-        print("Đang bấm Join lần " .. i .. "...")
-        doClick(joinBtn)
-        task.wait(1)
-        
-        -- Kiểm tra xem đã vào game thành công chưa (Menu ẩn hoặc bị xóa)
-        if menu and (not menu.Parent or not menu.Enabled or not menu:IsDescendantOf(playerGui)) then
-            joinedSuccess = true
-            print(">>> VÀO GAME THÀNH CÔNG! <<<")
-            break
-        end
-    end
-
-    -- Nếu đã vào game: Bảo vệ nhân vật không bị chết
-    if joinedSuccess then
-        task.spawn(function()
-            local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-            local hrp = char:WaitForChild("HumanoidRootPart", 10)
-            if hrp then
-                -- Đưa nhân vật lên cao ngay lập tức để tránh bị Nextbot cắn chết
-                hrp.CFrame = hrp.CFrame + Vector3.new(0, 200, 0)
-                hrp.Anchored = true
+        if isDowned then
+            downedTimer = downedTimer + CONFIG.CHECK_INTERVAL
+            -- Nếu bị gục (màn hình viền đỏ) quá 5 giây mà không được cứu -> Rejoin/Hop ngay
+            if downedTimer >= 5 then
+                print("[AutoJoin] Phát hiện bị gục quá lâu -> Hop Server...")
+                handleServerChange()
+                break
             end
-        end)
-    else
-        -- Nếu bấm 6 lần vẫn ở Menu -> Bị treo/kẹt mạng -> Rejoin ngay
-        print("[AutoJoin] Kẹt ở Menu -> Đang tiến hành Rejoin/Hop Server...")
-        handleServerChange()
+        else
+            downedTimer = 0
+        end
+
+        ------------------------------------------------------------------------
+        -- 2. THEO DÕI NÚT "JOIN GAME", "NO LIVES LEFT" VÀ MENU LIÊN TỤC
+        ------------------------------------------------------------------------
+        local menu = playerGui:FindFirstChild("Menu")
+        if menu and menu.Enabled then
+            -- Quét xem có nút B (nút Join mặc định) không
+            local joinBtn = nil
+            pcall(function()
+                joinBtn = menu.Views.Default.MainMenu.Center.Buttons.Frame.B.ImageButton
+            end)
+
+            -- Quét toàn bộ Text trong Menu xem có chữ "JOIN GAME" hoặc "NO LIVES LEFT" không
+            local foundNoLivesText = false
+            for _, v in ipairs(menu:GetDescendants()) do
+                if v:IsA("TextLabel") or v:IsA("TextButton") then
+                    local txt = string.upper(v.Text)
+                    if string.find(txt, "NO LIVES") or string.find(txt, "NO LIVES LEFT") then
+                        foundNoLivesText = true
+                    end
+                end
+            end
+
+            -- NẾU HẾT MẠNG (NO LIVES LEFT) -> REJOIN NGAY LẬP TỨC!
+            if foundNoLivesText then
+                print("[AutoJoin] Phát hiện NO LIVES LEFT -> Hop Server ngay!")
+                handleServerChange()
+                break
+            end
+
+            -- NẾU CÓ NÚT JOIN -> TỰ BẤM NÚT
+            if joinBtn and joinBtn.Visible then
+                print("[AutoJoin] Tìm thấy nút JOIN GAME -> Đang tự động bấm...")
+                doClick(joinBtn)
+                menuStuckTimer = menuStuckTimer + CONFIG.CHECK_INTERVAL
+            else
+                menuStuckTimer = menuStuckTimer + CONFIG.CHECK_INTERVAL
+            end
+
+            -- Nếu kẹt ở Menu quá 12 giây mà không vào được trận -> Rejoin luôn
+            if menuStuckTimer >= 12 then
+                print("[AutoJoin] Kẹt ở Menu quá lâu -> Hop Server...")
+                handleServerChange()
+                break
+            end
+        else
+            -- Nếu đã vào trận (Menu ẩn) -> Reset đếm kẹt
+            menuStuckTimer = 0
+        end
     end
 end)
