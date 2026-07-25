@@ -3,7 +3,7 @@ local function load(url)
 end
 
 load("https://raw.githubusercontent.com/tnrgb/VelaLoader/refs/heads/main/ui.lua")
-task.wait7)
+task.wait(7)
 
 load("https://raw.githubusercontent.com/tnrgb/VelaLoader/refs/heads/main/autojoin")
 task.wait(3)
