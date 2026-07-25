@@ -80,7 +80,7 @@ local function doClick(joinBtn)
     end
 end
 
--- TIẾN TRÌNH CHÍNH (Đã sửa: Vòng lặp liên tục + Chỉ Rejoin khi Gục/Màn hình đỏ hoặc NO LIVES)
+-- TIẾN TRÌNH CHÍNH (Đã sửa triệt để nhận diện nhầm UI)
 task.spawn(function()
     if not game:IsLoaded() then game.Loaded:Wait() end
     
@@ -90,49 +90,50 @@ task.spawn(function()
     local playerGui = LocalPlayer:WaitForChild("PlayerGui", 10)
     if not playerGui then return end
 
-    -- Vòng lặp theo dõi 24/7
+    local downedTimer = 0
+
     while true do
         task.wait(0.5)
 
-        -- 1. KIỂM TRA BỊ GỤC (MÀN HÌNH VIỀN ĐỎ)
+        ------------------------------------------------------------------------
+        -- 1. CHỈ REJOIN KHI BỊ GỤC (DOWNED) QUÁ 8 GIÂY
+        ------------------------------------------------------------------------
         local char = LocalPlayer.Character
         local isDowned = char and char:GetAttribute("Downed")
+        
         if isDowned then
-            print("[AutoJoin] Phát hiện bị gục (Màn hình đỏ) -> Tiến hành Rejoin!")
-            handleServerChange()
-            break
-        end
-
-        -- 2. TÌM MENU VÀ THEO DÕI CÁC NÚT
-        local menu = playerGui:FindFirstChild("Menu")
-        if menu and menu.Enabled then
-            
-            -- Lấy nút Join GAME (Nút B)
-            local joinBtn = menu.Views.Default.MainMenu.Center.Buttons.Frame:FindFirstChild("B")
-                and menu.Views.Default.MainMenu.Center.Buttons.Frame.B:FindFirstChild("ImageButton")
-
-            -- Quét kiểm tra xem có chữ "NO LIVES" hay không
-            local isNoLives = false
-            for _, v in ipairs(menu:GetDescendants()) do
-                if (v:IsA("TextLabel") or v:IsA("TextButton")) and v.Visible then
-                    local txt = string.upper(v.Text)
-                    if string.find(txt, "NO LIVES") then
-                        isNoLives = true
-                        break
-                    end
-                end
-            end
-
-            -- NẾU HẾT MẠNG (NO LIVES) -> CHUYỂN SERVER
-            if isNoLives then
-                print("[AutoJoin] Phát hiện NO LIVES LEFT -> Hop Server!")
+            downedTimer = downedTimer + 0.5
+            if downedTimer >= 8 then -- Đợi hẳn 8s nếu không được cứu mới Hop
+                print("[AutoJoin] Bị gục quá 8s -> Tiến hành Hop Server...")
                 handleServerChange()
                 break
             end
+        else
+            downedTimer = 0
+        end
 
-            -- NẾU CÓ NÚT JOIN -> TỰ BẤM NHƯ CŨ
-            if joinBtn then
-                doClick(joinBtn)
+        ------------------------------------------------------------------------
+        -- 2. TỰ BẤM JOIN GAME KHI NÚT HIỂN THỊ
+        ------------------------------------------------------------------------
+        local menu = playerGui:FindFirstChild("Menu")
+        if menu then
+            local joinBtn = nil
+            pcall(function()
+                joinBtn = menu.Views.Default.MainMenu.Center.Buttons.Frame.B.ImageButton
+            end)
+
+            -- CHỈ BẤM KHI NÚT THỰC SỰ HIỆN TRÊN MÀN HÌNH (IsDescendantOf & Visible)
+            if joinBtn and joinBtn:IsDescendantOf(playerGui) and joinBtn.Visible then
+                -- Kiểm tra thêm nếu bảng NoLives đang đè lên nút
+                local noLivesFrame = menu:FindFirstChild("NoLives", true)
+                if noLivesFrame and noLivesFrame.Visible then
+                    print("[AutoJoin] Phát hiện bảng NO LIVES đang hiện -> Hop Server!")
+                    handleServerChange()
+                    break
+                else
+                    -- Bấm nút Join liên tục
+                    doClick(joinBtn)
+                end
             end
         end
     end
