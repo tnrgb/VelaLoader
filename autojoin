@@ -1,15 +1,12 @@
 -- ==
 local CONFIG = {
-    MODE = "REJOIN", -- "REJOIN"
+    MODE = "REJOIN", -- "REJOIN" hoặc "SERVERHOP"
     
     MSG_LOAD_TITLE = "SCRIPT BY ZERO x TAIIKU",
     MSG_LOAD_TEXT  = "TikTok : @TAIIKU037",
     
-    MSG_JOIN_TITLE = "KAITUN EVADE SUMMER EVENT!",
-    MSG_JOIN_TEXT  = "zeroyeuem",
-    
-    MSG_HOP_TITLE  = "HOP SEVER",
-    MSG_HOP_TEXT   = "HOP SEVER IN 1S",
+    MSG_HOP_TITLE  = "HOP SERVER",
+    MSG_HOP_TEXT   = "DANG CHUYEN SERVER...",
     
     NOTIFY_DURATION = 4
 }
@@ -64,76 +61,83 @@ local function handleServerChange()
     end
 end
 
---
-local function doClick(joinBtn)
+local function doClick(btn)
+    if not btn then return end
     if firesignal then
-        pcall(function() firesignal(joinBtn.MouseButton1Down) end)
-        pcall(function() firesignal(joinBtn.MouseButton1Click) end)
-        pcall(function() firesignal(joinBtn.MouseButton1Up) end)
-        pcall(function() firesignal(joinBtn.Activated) end)
+        pcall(function() firesignal(btn.MouseButton1Down) end)
+        pcall(function() firesignal(btn.MouseButton1Click) end)
+        pcall(function() firesignal(btn.MouseButton1Up) end)
+        pcall(function() firesignal(btn.Activated) end)
     end
-
     if getconnections then
-        for _, conn in pairs(getconnections(joinBtn.MouseButton1Click)) do pcall(function() conn:Fire() end) end
-        for _, conn in pairs(getconnections(joinBtn.Activated)) do pcall(function() conn:Fire() end) end
-        for _, conn in pairs(getconnections(joinBtn.MouseButton1Down)) do pcall(function() conn:Fire() end) end
+        pcall(function()
+            for _, conn in pairs(getconnections(btn.MouseButton1Click)) do pcall(function() conn:Fire() end) end
+            for _, conn in pairs(getconnections(btn.Activated)) do pcall(function() conn:Fire() end) end
+            for _, conn in pairs(getconnections(btn.MouseButton1Down)) do pcall(function() conn:Fire() end) end
+        end)
     end
 end
 
--- TIẾN TRÌNH CHÍNH (Đã sửa triệt để nhận diện nhầm UI)
+-- TIẾN TRÌNH CHÍNH
 task.spawn(function()
     if not game:IsLoaded() then game.Loaded:Wait() end
-    
     showNotification(CONFIG.MSG_LOAD_TITLE, CONFIG.MSG_LOAD_TEXT)
-    print("Bắt đầu Auto Join...")
+    print(">>> AUTO JOIN & HOP ACTIVATED <<<")
 
-    local playerGui = LocalPlayer:WaitForChild("PlayerGui", 10)
-    if not playerGui then return end
-
+    local notInGameTimer = 0
     local downedTimer = 0
 
     while true do
-        task.wait(0.5)
+        task.wait(0.2)
 
-        ------------------------------------------------------------------------
-        -- 1. CHỈ REJOIN KHI BỊ GỤC (DOWNED) QUÁ 8 GIÂY
-        ------------------------------------------------------------------------
+        local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
         local char = LocalPlayer.Character
-        local isDowned = char and char:GetAttribute("Downed")
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
         
-        if isDowned then
-            downedTimer = downedTimer + 0.5
-            if downedTimer >= 8 then -- Đợi hẳn 8s nếu không được cứu mới Hop
-                print("[AutoJoin] Bị gục quá 8s -> Tiến hành Hop Server...")
+        -- 1. KIỂM TRA MẶT BẰNG MENU & BẤM JOIN GAME
+        local isAtMenu = false
+        if playerGui then
+            local menu = playerGui:FindFirstChild("Menu")
+            if menu and menu.Enabled then
+                isAtMenu = true
+                
+                -- Tìm và Click nút Join Game
+                pcall(function()
+                    local joinBtn = menu.Views.Default.MainMenu.Center.Buttons.Frame.B:FindFirstChild("ImageButton")
+                    if joinBtn then
+                        doClick(joinBtn)
+                    end
+                end)
+            end
+        end
+
+        -- 2. ĐÁNH GIÁ TRẠNG THÁI CHƠI
+        -- NGUYÊN LÝ: Nếu KHÔNG CÓ HRP (chưa spawn vào map) HOẶC ĐANG Ở MENU -> Tính là chưa vào trận
+        if isAtMenu or not hrp then
+            notInGameTimer = notInGameTimer + 0.2
+            downedTimer = 0
+
+            -- Nếu đứng ở Menu / Bị NO LIVES / Không spawn được quá 4.5 giây -> HOP SERVER NGAY
+            if notInGameTimer >= 4.5 then
+                print("Kẹt Menu / Không Spawn / Hết mạng -> Tiến hành Hop Server!")
                 handleServerChange()
                 break
             end
         else
-            downedTimer = 0
-        end
+            -- Đã vào trận thành công
+            notInGameTimer = 0 
 
-        ------------------------------------------------------------------------
-        -- 2. TỰ BẤM JOIN GAME KHI NÚT HIỂN THỊ
-        ------------------------------------------------------------------------
-        local menu = playerGui:FindFirstChild("Menu")
-        if menu then
-            local joinBtn = nil
-            pcall(function()
-                joinBtn = menu.Views.Default.MainMenu.Center.Buttons.Frame.B.ImageButton
-            end)
-
-            -- CHỈ BẤM KHI NÚT THỰC SỰ HIỆN TRÊN MÀN HÌNH (IsDescendantOf & Visible)
-            if joinBtn and joinBtn:IsDescendantOf(playerGui) and joinBtn.Visible then
-                -- Kiểm tra thêm nếu bảng NoLives đang đè lên nút
-                local noLivesFrame = menu:FindFirstChild("NoLives", true)
-                if noLivesFrame and noLivesFrame.Visible then
-                    print("[AutoJoin] Phát hiện bảng NO LIVES đang hiện -> Hop Server!")
+            -- Kiểm tra trạng thái bị gục (Downed)
+            local isDowned = char:GetAttribute("Downed")
+            if isDowned then
+                downedTimer = downedTimer + 0.2
+                if downedTimer >= 4 then
+                    print("Bị gục quá 4s -> Hop Server!")
                     handleServerChange()
                     break
-                else
-                    -- Bấm nút Join liên tục
-                    doClick(joinBtn)
                 end
+            else
+                downedTimer = 0
             end
         end
     end
