@@ -4,11 +4,13 @@ end
 
 -- 1. Load UI lên đầu tiên
 load("https://raw.githubusercontent.com/tnrgb/VelaLoader/refs/heads/main/ui.lua")
-task.wait(50) -- Đợi 1s để UI khởi tạo xong
+
+task.wait(60)
 
 -- 2. Load Auto Join thứ hai
 load("https://raw.githubusercontent.com/tnrgb/VelaLoader/refs/heads/main/autojoin")
-task.wait(20) -- Đợi 0.8s
+
+task.wait(30)
 
 -- 3. Load Main cuối cùng
 load("https://raw.githubusercontent.com/tnrgb/VelaLoader/refs/heads/main/main.lua")
