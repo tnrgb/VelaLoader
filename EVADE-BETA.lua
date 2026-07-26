@@ -11,9 +11,9 @@
 ]]--
 
 local scriptList = {
-    { url = "LINK_RAW_SCRIPT_1", waitTime = 7 },
-    { url = "LINK_RAW_SCRIPT_2", waitTime = 4 },
-    { url = "LINK_RAW_SCRIPT_3", waitTime = 0 }
+    { url = "https://raw.githubusercontent.com/tnrgb/VelaLoader/refs/heads/main/ui.lua", waitTime = 7 },
+    { url = "https://raw.githubusercontent.com/tnrgb/VelaLoader/refs/heads/main/autojoin", waitTime = 4 },
+    { url = "https://raw.githubusercontent.com/tnrgb/VelaLoader/refs/heads/main/main.lua", waitTime = 0 }
 }
 
 task.spawn(function()
