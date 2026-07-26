@@ -21,7 +21,7 @@ task.spawn(function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/tnrgb/VelaLoader/refs/heads/main/autojoin"))()
     end)
 
-    task.wait(2)
+    task.wait(2.5)
 
     pcall(function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/tnrgb/VelaLoader/refs/heads/main/main.lua"))()
