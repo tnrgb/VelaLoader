@@ -3,7 +3,6 @@ local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
--- Mặc định BẬT luôn tính năng khi không có UI
 local AfkFarmEnabled = true
 local AutoItemEnabled = true
 local savedAfkState = true
@@ -21,10 +20,9 @@ local function isPlayerAsset(instance)
     return false
 end
 
--- TỐI ƯU 1: Dùng GetChildren thay vì GetDescendants để chống đơ CPU
 local function getAllItems()
     local items = {}
-    -- Tìm trong workspace hoặc thư mục Game (Evade hay đặt item ở Workspace)
+    --
     for _, v in ipairs(workspace:GetChildren()) do
         if v:IsA("BasePart") or v:IsA("Model") then
             local nameLower = string.lower(v.Name)
@@ -47,7 +45,6 @@ local function getAllItems()
     return items
 end
 
--- TỐI ƯU 2: Quét Nextbot nhanh bằng GetChildren
 local function isNextbotNear(position)
     for _, v in ipairs(workspace:GetChildren()) do
         if v:IsA("Model") and v:GetAttribute("Nextbot") == true then
@@ -81,7 +78,6 @@ local function teleportTo(hrp, pos, duration)
     tween.Completed:Wait()
 end
 
--- Vòng lặp chính xử lý nhặt Item & AFK
 task.spawn(function()
     while true do
         local items = getAllItems()
@@ -143,7 +139,6 @@ task.spawn(function()
     end
 end)
 
--- Vòng lặp giữ vị trí AFK
 task.spawn(function()
     while true do
         task.wait(2) 
@@ -162,7 +157,6 @@ task.spawn(function()
     end
 end)
 
--- Tự động thiết lập vị trí khi hồi sinh
 local function setupCharacter(char)
     char:GetAttributeChangedSignal("Downed"):Connect(function()
         local isDowned = char:GetAttribute("Downed")
@@ -186,7 +180,6 @@ local function setupCharacter(char)
         end
     end)
 
-    -- Bay lên cao ngay khi vừa vào game
     task.spawn(function()
         local hrp = char:WaitForChild("HumanoidRootPart", 5)
         if hrp and AfkFarmEnabled then
@@ -203,7 +196,6 @@ if LocalPlayer.Character then
     setupCharacter(LocalPlayer.Character)
 end
 
--- Chống AFK Kick
 LocalPlayer.Idled:Connect(function()
     local virtualUser = game:GetService("VirtualUser")
     virtualUser:CaptureController()
@@ -213,7 +205,6 @@ local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
--- Mặc định BẬT luôn tính năng khi không có UI
 local AfkFarmEnabled = true
 local AutoItemEnabled = true
 local savedAfkState = true
@@ -288,7 +279,6 @@ local function teleportTo(hrp, pos, duration)
     tween.Completed:Wait()
 end
 
--- Vòng lặp chính xử lý nhặt Item & AFK
 task.spawn(function()
     while true do
         local items = getAllItems()
@@ -350,7 +340,6 @@ task.spawn(function()
     end
 end)
 
--- Vòng lặp giữ vị trí AFK
 task.spawn(function()
     while true do
         task.wait(2) 
@@ -369,7 +358,6 @@ task.spawn(function()
     end
 end)
 
--- Tự động thiết lập vị trí khi hồi sinh
 local function setupCharacter(char)
     char:GetAttributeChangedSignal("Downed"):Connect(function()
         local isDowned = char:GetAttribute("Downed")
@@ -393,7 +381,6 @@ local function setupCharacter(char)
         end
     end)
 
-    -- Bay lên cao ngay khi vừa vào game
     task.spawn(function()
         local hrp = char:WaitForChild("HumanoidRootPart", 5)
         if hrp and AfkFarmEnabled then
@@ -410,7 +397,6 @@ if LocalPlayer.Character then
     setupCharacter(LocalPlayer.Character)
 end
 
--- Chống AFK Kick
 LocalPlayer.Idled:Connect(function()
     local virtualUser = game:GetService("VirtualUser")
     virtualUser:CaptureController()
